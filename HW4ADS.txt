@@ -1,0 +1,336 @@
+//Advanced Data Structures : HomeWork 4.
+//Submitted by : Vishnu Prasad Vishwanathan - 793782749 , vvishwan@syr.edu
+
+//Prim's algorithm by C-Y (Roger) Chen, Syracuse University
+//Implemented with min-Heap
+
+#include <iostream>
+#include <vector>
+#include <fstream>
+
+using namespace std;
+class e_node { //stands for edge node
+public:
+	int nb;//the neighbor of a currently considered node
+	int weight; //weight of the edge to the above neighbor
+	e_node() {}//constructor
+};
+class rt_node { //rt stands for routing table
+public:
+	int node;  //current node
+	int cost;  //cost to a node
+	int from;  //the from node to this node
+	int checked;
+	int h_pos; //the postion in heap for this node
+	rt_node() { from = -1;  cost = 9999;  checked = 0; }
+};
+
+class h_node { //stands for heap_node
+public:
+	int id;
+	int cost;
+	h_node() { id = -1; cost = 9999; }
+	h_node(int i, int j) { id = i; cost = j; }
+	bool operator<(h_node h) { return (cost < h.cost); }
+};
+
+void set_up(vector<rt_node> &rt, vector<h_node> & heap, int &start);
+void heap_adjust_up(vector<rt_node> &rt, vector<h_node> & heap, int &n);
+void heap_adjust_down(vector<rt_node> & rt, vector<h_node> & heap);
+void heap_op(vector<vector<e_node>> & graph, vector<rt_node> & rt, vector<h_node> &heap);
+
+int main() {
+
+	ifstream in("text1.txt");
+	int n, e; //n: num of nodes ; e: num of edges
+	in >> n >> e;
+	vector<e_node> ve;
+	vector<vector<e_node> > graph(n, ve);
+	e_node e1, min_edge;
+	min_edge.nb = 9999;
+	min_edge.weight = 9999;
+	int n1, n2, w, min_start = 0;
+	for (int i = 0; i < e; i++) {
+		in >> n1 >> n2 >> w;
+		e1.nb = n2;
+		e1.weight = w;
+		graph[n1].push_back(e1);
+		if (min_edge.weight > w)
+		{
+			min_edge = e1;
+			min_start = n1;
+		}
+		e1.nb = n1;
+		graph[n2].push_back(e1);
+	}
+	in.close();
+	vector<rt_node> rt(n); //rt stands for routing table
+	vector<h_node> heap(n);
+
+	set_up(rt, heap, min_start);
+	heap_op(graph, rt, heap);
+
+	for (int i = 0; i < n - 1; i++) {
+		if ((rt[i].cost != 9999) && (rt[i].node != min_start))
+			std::cout << rt[i].from << " " << rt[i].node << " " << rt[i].cost << " " << endl;
+	}
+	getchar();
+	getchar();
+	return 0;
+}
+
+
+void set_up(vector<rt_node> &rt, vector<h_node> & heap, int &start) {
+
+
+	for (size_t i = 0; i < heap.size(); i++) {
+		heap[i].id = i;
+		rt[i].h_pos = i;
+	}
+	rt[start].from = start;
+	rt[start].cost = 0;
+	heap[start].id = start;
+	heap[start].cost = 0;
+	rt[start].h_pos = start;
+	rt[start].node = start;
+	heap_adjust_up(rt, heap, start);
+}
+
+
+
+void heap_adjust_down(vector<rt_node> & rt, vector<h_node> & heap)
+{
+	bool heap_done = false, swap_done = false;;
+	int minIndex = 0;
+	int index = 0;
+	while (heap_done == false)
+	{
+		index = minIndex;
+
+		int length = heap.size();
+		int leftChildIndex = 2 * index + 1;
+		int rightChildIndex = 2 * index + 2;
+
+
+		if (leftChildIndex >= length)
+			return;
+
+		minIndex = index;
+
+		if (heap[leftChildIndex] < heap[index])
+		{
+			minIndex = leftChildIndex;
+		}
+
+		if ((length > rightChildIndex) && (heap[rightChildIndex] < heap[minIndex]))
+		{
+			minIndex = rightChildIndex;
+		}
+
+		if (minIndex != index)
+		{
+			h_node temp;
+			temp = heap[index];
+			heap[index] = heap[minIndex];
+			heap[minIndex] = temp;
+			heap_done = false;
+			swap_done = true;
+		}
+		else {
+			heap_done = true;
+		}
+	}
+}
+
+void heap_adjust_up(vector<rt_node> & rt, vector<h_node> & heap, int &n)
+{
+	bool heap_done = false;
+
+	for (int i = 0; i < heap.size(); i++)
+	{
+		int index = i;
+		heap_done = false;
+		while (heap_done == false)
+		{
+
+			int parentIndex = (index - 1) / 2;
+			if (heap[index].cost < heap[parentIndex].cost)
+			{
+				h_node temp;
+				temp = heap[parentIndex];
+				heap[parentIndex] = heap[index];
+				heap[index] = temp;
+				index = parentIndex;
+				heap_done = false;
+			}
+			else
+				heap_done = true;
+
+		}
+	}
+}
+
+void heap_op(vector<vector<e_node>> & graph, vector<rt_node> & rt, vector<h_node> &heap)
+{
+	int p = 0;
+	h_node main_start;
+	main_start.cost = heap[0].cost;
+	main_start.id = heap[0].id;
+	int n5 = main_start.id;
+	int length = heap.size();
+	int n = length;
+	if (length == 0)
+	{
+		return;
+	}
+
+	h_node start_hn = heap[0];
+	heap[0] = heap[length - 1];
+	heap[length - 1] = start_hn;
+	heap.pop_back();
+	main_start.id = start_hn.id;
+	main_start.cost = start_hn.cost;
+	heap.resize(length - 1);
+	rt[start_hn.id].checked = 1;
+	heap_adjust_down(rt, heap);
+	int n1 = start_hn.id;
+	int i = main_start.id;
+	vector<vector<int>> vec(length);
+	vector<int> nodes(rt.size());
+	bool already_in = false;
+	bool already_used = false;
+	e_node e1 = e_node();
+	vector<pair<int, int>> evec;
+	int addtort = 0;
+	while (i < rt.size())
+	{
+		for (int j = 0; j < graph[i].size(); j++)
+		{
+			already_in = false;
+			already_used = false;
+
+			e1 = graph[i][j];
+			for (int q = 0; q < evec.size(); q++)
+			{
+				if (((evec[q].first == i) && (evec[q].second == graph[i][j].nb)) || ((evec[q].second == i) && (evec[q].first == graph[i][j].nb)))
+				{
+					already_used = true;
+					break;
+				}
+			}
+
+			for (int p = 0; p < vec[i].size(); p++)
+			{
+				if (vec[i][p] == graph[i][j].nb)
+				{
+					already_in = true;
+					break;
+				}
+			}
+			if (already_used == false)
+			{
+				if (already_in == false)
+				{
+					for (int k = 0; k < heap.size(); k++)
+					{
+
+
+						if (heap[k].id == graph[i][j].nb)
+						{
+							if (heap[k].cost == 9999)
+							{
+								heap[k].cost = graph[i][j].weight;
+
+								rt[graph[i][j].nb].from = i;
+								rt[graph[i][j].nb].cost = graph[i][j].weight;
+								rt[graph[i][j].nb].node = graph[i][j].nb;
+								rt[graph[i][j].nb].h_pos = heap[k].id;
+
+								int n = graph[i][j].nb;
+								heap_adjust_up(rt, heap, n);
+								evec.push_back(std::make_pair(i, graph[i][j].nb));
+								break;
+							}
+
+							else
+							{
+								if (heap[k].cost > (graph[i][j].weight))
+								{
+									if (heap[k].cost > (graph[i][j].weight))
+									{
+										heap[k].cost = graph[i][j].weight;
+										for (int r = 0; r < rt.size(); r++)
+										{
+											if (rt[r].h_pos == heap[k].id)
+											{
+
+												rt[r].from = i;
+												rt[r].cost = (graph[i][j].weight);
+											}
+										}
+										int n = graph[i][j].nb;
+										heap_adjust_up(rt, heap, n);
+										evec.push_back(std::make_pair(i, graph[i][j].nb));
+										break;
+									}
+								}
+							}
+						}
+					}
+
+
+
+				}
+			}
+
+
+
+		}
+		int length = heap.size();
+		if (length == 0)
+		{
+			vector<rt_node> rt_temp(rt.size());
+			for (int s = 0; s < rt.size(); s++)
+				rt_temp[s] = rt[s];
+			for (int l = 0; l < nodes.size(); l++)
+			{
+				for (int m = 0; m < rt_temp.size(); m++)
+				{
+					if (rt_temp[m].node == nodes[l])
+					{
+						rt[l] = rt_temp[m];
+						break;
+					}
+				}
+			}
+			return;
+		}
+		int parent_n = start_hn.id;
+
+		start_hn.id = heap[0].id;
+		start_hn.cost = heap[0].cost;
+		nodes[addtort] = start_hn.id;
+		addtort++;
+		if (vec[parent_n].size() != 0)
+		{
+			for (int r = 0; r < vec[parent_n].size(); r++)
+
+				vec[start_hn.id].push_back(vec[parent_n][r]);
+			vec[start_hn.id].push_back(parent_n);
+		}
+		else
+			vec[start_hn.id].push_back(parent_n);
+
+		start_hn.cost = heap[0].cost;
+		heap[0] = heap[length - 1];
+		heap[length - 1] = start_hn;
+		heap.pop_back();
+		heap.resize(length - 1);
+		rt[start_hn.id].checked = 1;
+		heap_adjust_down(rt, heap);
+		i = start_hn.id;
+	}
+
+
+}
+
